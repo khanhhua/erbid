@@ -1,0 +1,46 @@
+html, body {
+  color: #111;
+}
+
+section.row {
+  min-height: 300px;
+  padding-top: 5rem;
+}
+
+/* .block-grid */
+.block-grid {
+  list-style: none;
+  padding: 0;
+}
+
+.block-grid:before,
+.block-grid:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.block-grid > li {
+  list-style: none;
+
+  float: left;
+  width: 33.33333%;
+}
+
+.block-grid > li:nth-child(3n + 1) {
+  clear: both;
+}
+
+/* end of .block-grid */
+
+
+/* .bid-list */
+.bid-list {
+
+}
+
+.bid-list .bid-list-item {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+/* end of .bid-list */

@@ -1,0 +1,15 @@
+<div class="bid-list">
+  <ul class="block-grid">
+    <li ng-repeat="bid in bids">
+      <div class="bid-list-item">
+        <h3 ng-bind="bid.title"></h3>
+        <p ng-bind="bid.description"></p>
+        <div class="text-center">
+          <span>Bidders:</span>
+          <span class="label label-success"
+                ng-bind="bid.bidderCount"></span>
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>

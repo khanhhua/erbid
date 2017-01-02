@@ -41,7 +41,12 @@
 start(_StartType, _StartArgs) ->
   Dispatch = cowboy_router:compile([
     %% {HostMatch, list({PathMatch, Handler, Opts})}
-    {'_', [{ "/", erbid_handler, [] }]}
+    {'_', [
+      {"/", cowboy_static, {priv_file, erbid, "static/index.html"}},
+      {"/assets/[...]", cowboy_static, {priv_dir, erbid, "static/assets"}},
+      {"/api/resources/:resourceName/[...]", erbid_rest_handler, []},
+      {"/api/:actionName", erbid_api_handler, []}
+    ]}
   ]),
   cowboy:start_http(my_http_listener, 100, [{port, 8080}],
     [
