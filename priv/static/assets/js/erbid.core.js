@@ -1,5 +1,5 @@
 (function (erbidCore) {
-  function LoginCtrl($scope, $http) {
+  function LoginCtrl($scope, $http, $sessionStorage, $window) {
     $scope.username = '';
 
     $scope.onLoginClick = function () {
@@ -11,11 +11,19 @@
         }
       ).then(function (res) {
         var data = res.data;
+
+        if (data.ok === true) {
+          $sessionStorage.authtoken = data.authtoken;
+          $window.location.href = '/app';
+        }
+        else {
+          alert('Cannot login');
+        }
       })
     };
   }
 
-  LoginCtrl.$inject = ['$scope', '$http'];
+  LoginCtrl.$inject = ['$scope', '$http', '$sessionStorage', '$window'];
   erbidCore.controller('LoginCtrl', LoginCtrl);
 
 
@@ -45,4 +53,4 @@
   erbidCore.service('erbid.listings', ['$resource', function ($resource) {
     return $resource('/api/resources/listings');
   }]);
-})(angular.module('erbid.core', ['ngResource']));
+})(angular.module('erbid.core', ['ngResource', 'ngStorage']));

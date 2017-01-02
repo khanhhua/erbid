@@ -15,8 +15,7 @@
 -import(cowboy, [start_http/4]).
 
 %% Application callbacks
--export([start/2,
-  stop/1]).
+-export([start/2, stop/1]).
 
 %%%===================================================================
 %%% Application callbacks
@@ -43,8 +42,9 @@ start(_StartType, _StartArgs) ->
     %% {HostMatch, list({PathMatch, Handler, Opts})}
     {'_', [
       {"/", cowboy_static, {priv_file, erbid, "static/index.html"}},
+      {"/app", cowboy_static, {priv_file, erbid, "static/app.html"}},
       {"/assets/[...]", cowboy_static, {priv_dir, erbid, "static/assets"}},
-      {"/api/resources/:resourceName/[...]", erbid_rest_handler, []},
+      {"/api/resources/:resourceName/[:id]", erbid_rest_handler, []},
       {"/api/:actionName", erbid_api_handler, []}
     ]}
   ]),
@@ -57,6 +57,8 @@ start(_StartType, _StartArgs) ->
       }
     ]
   ),
+
+  ets:new(users, [public, set, named_table]),
   erbid_sup:start_link().
 
 

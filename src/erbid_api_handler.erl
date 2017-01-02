@@ -9,7 +9,10 @@
 -module(erbid_api_handler).
 -author("khanhhua").
 
+-import(crypto, [hash/2]).
+-import(maps, [find/2]).
 -import(cowboy_req, [reply/4, binding/2]).
+-import(jsx, [is_json/1, encode/1, decode/2]).
 
 %% Cowboy behavior
 -export([init/3, handle/2, terminate/3]).
@@ -39,12 +42,35 @@ terminate(_Reason, Req, State) ->
 
 %% PRIVATE
 handle_login(Req, State) ->
-  cowboy_req:reply(200,
-    [
-      {<<"content-type">>, <<"application/json">>}
-    ],
-    <<"login() OK">>,
-    Req).
+  {ok, Data, _} = cowboy_req:body(Req),
+  case jsx:is_json(Data) of
+    false -> cowboy_req:reply(400,
+      [
+        {<<"content-type">>, <<"application/json">>}
+      ],
+      <<"Invalid JSON">>,
+      Req);
+    true -> Credential = jsx:decode(Data, [return_maps]),
+      case maps:find(<<"username">>, Credential) of
+        {ok, Username} ->
+          Authtoken = base64:encode(hash(Username)),
+          true = ets:insert(users, {binary_to_list(Authtoken), binary_to_list(Username)}),
+
+          cowboy_req:reply(200,
+            [
+              {<<"content-type">>, <<"application/json">>}
+            ],
+            jsx:encode(#{ok => true, authtoken => Authtoken, username => Username}),
+            Req);
+        _ ->
+          cowboy_req:reply(400,
+            [
+              {<<"content-type">>, <<"application/json">>}
+            ],
+            <<"Missing username in payload">>,
+            Req)
+      end
+  end.
 
 handle_logout(Req, State) ->
   cowboy_req:reply(200,
@@ -53,3 +79,7 @@ handle_logout(Req, State) ->
     ],
     <<"logout() OK">>,
     Req).
+
+
+hash(Username) ->
+  crypto:hash(md5, Username).
