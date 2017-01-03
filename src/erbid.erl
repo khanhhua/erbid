@@ -38,14 +38,16 @@
   {ok, pid(), State :: term()} |
   {error, Reason :: term()}).
 start(_StartType, _StartArgs) ->
+  {ok, DatabaseRef} = dets:open_file('../../../../bid.data', []),
+  io:format("The data file's info: ~p~n", [dets:info(DatabaseRef)] ),
   Dispatch = cowboy_router:compile([
     %% {HostMatch, list({PathMatch, Handler, Opts})}
     {'_', [
       {"/", cowboy_static, {priv_file, erbid, "static/index.html"}},
       {"/app", cowboy_static, {priv_file, erbid, "static/app.html"}},
       {"/assets/[...]", cowboy_static, {priv_dir, erbid, "static/assets"}},
-      {"/api/resources/:resourceName/[:id]", erbid_rest_handler, []},
-      {"/api/:actionName", erbid_api_handler, []}
+      {"/api/resources/:resourceName/[:id]", erbid_rest_handler, [{dbRef, DatabaseRef}]},
+      {"/api/:actionName", erbid_api_handler, [{dbRef, DatabaseRef}]}
     ]}
   ]),
   cowboy:start_http(my_http_listener, 100, [{port, 8080}],
@@ -58,7 +60,6 @@ start(_StartType, _StartArgs) ->
     ]
   ),
 
-  ets:new(users, [public, set, named_table]),
   erbid_sup:start_link().
 
 
@@ -73,7 +74,7 @@ start(_StartType, _StartArgs) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec(stop(State :: term()) -> term()).
-stop(_State) ->
+stop(State) ->
   ok.
 
 %%%===================================================================

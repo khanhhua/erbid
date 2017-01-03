@@ -19,8 +19,12 @@
 
 -record(state, {bidders}).
 
-init(_Type, Req, _Opts) ->
-  {ok, Req, no_state}.
+init(_Type, Req, Options) ->
+  %% erlang:display(Options),
+  DbRef = proplists:get_value(dbRef, Options),
+  erlang:display(DbRef),
+
+  {ok, Req, #{dbRef => DbRef}}.
 
 handle(Req, State) ->
   {ActionName, _} = cowboy_req:binding(actionName, Req),
@@ -44,31 +48,28 @@ terminate(_Reason, Req, State) ->
 handle_login(Req, State) ->
   {ok, Data, _} = cowboy_req:body(Req),
   case jsx:is_json(Data) of
-    false -> cowboy_req:reply(400,
-      [
-        {<<"content-type">>, <<"application/json">>}
-      ],
-      <<"Invalid JSON">>,
-      Req);
+    false -> json(400, <<"Invalid JSON">>, Req);
     true -> Credential = jsx:decode(Data, [return_maps]),
       case maps:find(<<"username">>, Credential) of
         {ok, Username} ->
-          Authtoken = base64:encode(hash(Username)),
-          true = ets:insert(users, {binary_to_list(Authtoken), binary_to_list(Username)}),
+          Password = case maps:find(<<"password">>, Credential) of
+                       error -> <<"">>;
+                       {ok, Value} -> Value
+                     end,
+          HashedPassword = hash(Password),
 
-          cowboy_req:reply(200,
-            [
-              {<<"content-type">>, <<"application/json">>}
-            ],
-            jsx:encode(#{ok => true, authtoken => Authtoken, username => Username}),
-            Req);
+          {ok, DbRef} = maps:find(dbRef, State),
+          case dets:match_object(DbRef, {username, Username, hashedpass, HashedPassword}) of
+            {error, Reason} ->
+              json(400, #{ok => false, reason => list_to_binary(Reason)}, Req);
+            [] ->
+              json(404, #{ok => false, reason => <<"Not found">>}, Req);
+            [User] ->
+              Authtoken = list_to_binary(base64:encode(hash(Username))),
+              json(200, #{ok => true, authtoken => Authtoken, username => Username}, Req)
+          end;
         _ ->
-          cowboy_req:reply(400,
-            [
-              {<<"content-type">>, <<"application/json">>}
-            ],
-            <<"Missing username in payload">>,
-            Req)
+          json(400, <<"Missing username in payload">>, Req)
       end
   end.
 
@@ -80,6 +81,13 @@ handle_logout(Req, State) ->
     <<"logout() OK">>,
     Req).
 
+json(Status, Body, Req) ->
+  cowboy_req:reply(Status,
+    [
+      {<<"content-type">>, <<"application/json">>}
+    ],
+    jsx:encode(Body),
+    Req).
 
 hash(Username) ->
   crypto:hash(md5, Username).

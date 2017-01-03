@@ -1,13 +1,15 @@
 (function (erbidCore) {
   function LoginCtrl($scope, $http, $sessionStorage, $window) {
     $scope.username = '';
+    $scope.password = '';
 
     $scope.onLoginClick = function () {
 
 
       $http.post('/api/login',
         {
-          username: $scope.username
+          username: $scope.username,
+          password: $scope.password
         }
       ).then(function (res) {
         var data = res.data;
@@ -19,6 +21,8 @@
         else {
           alert('Cannot login');
         }
+      }).catch(function (err) {
+        console.error(err);
       })
     };
   }
