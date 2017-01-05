@@ -1,4 +1,90 @@
 (function (erbidCore) {
+  erbidCore.directive('modalTrigger', function () {
+    return {
+      restrict: 'A',
+      link: function (scope, elm, attrs) {
+        var modalSelector = attrs['modalTrigger'];
+        if (!modalSelector) {
+          return;
+        }
+
+        elm.on('click', function () {
+          var $modal = $(modalSelector);
+          var componentTag = $modal[0].tagName.toLowerCase();
+          var controller = $modal.controller(componentTag);
+
+          if (angular.isFunction(controller.showModal)) {
+            controller.showModal();
+          }
+        });
+      }
+    }
+  });
+
+  function SignupModalCtrl($scope, $http, $element) {
+    var STEP_SIGNING_UP = 1;
+    var STEP_COMPLETE = 2;
+    var $modal = $element.find('.modal');
+
+    this.step = 1;
+    this.isBusy = false;
+    this.newUser = {};
+    this.serverMessage = null;
+
+    this.showModal = function () {
+      this.step = 1;
+
+      this.isBusy = false;
+      this.newUser = {};
+      this.serverMessage = null;
+
+      // $scope.$$childTail.formNewUser.$setPristine();
+      $modal.modal('show');
+    };
+
+    this.onSignupClick = function () {
+      var self = this;
+      this.isBusy = true;
+
+      var newUser = this.newUser;
+      if (validate(newUser)) {
+        $http.post('/api/signup', {
+          username: newUser.username,
+          password: newUser.password
+        }).then(
+          function (res) {
+            self.step = STEP_COMPLETE;
+          },
+          function (err) {
+            self.serverMessage = err.data;
+          }
+        ).finally(function () {
+          self.isBusy = false;
+        });
+      }
+    };
+
+    this.onCloseClick = function () {
+      $modal.modal('hide');
+    };
+
+    this.onLogInClick = function () {
+      $modal.modal('hide');
+
+      $('#login-modal').modal('show');
+    };
+
+    function validate (newUser) {
+      return true;
+    }
+  }
+
+  erbidCore.component('erbidSignupModal', {
+    templateUrl: '/assets/partials/erbid-signup-modal.html',
+    controller: SignupModalCtrl
+  });
+
+
   function LoginCtrl($scope, $http, $sessionStorage, $window) {
     $scope.username = '';
     $scope.password = '';

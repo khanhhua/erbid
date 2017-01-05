@@ -1,0 +1,50 @@
+<div class="modal fade" id="login-modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-sm" role="document" ng-controller="LoginCtrl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Sign up</h4>
+      </div>
+      <div class="modal-body">
+        <form ng-show="$ctrl.step == 1" name="formNewUser" class="form" ng-disabled="$ctrl.isBusy">
+          <div class="form-group">
+            <label class="control-label">Username:</label>
+            <input type="text" class="form-control" name="username" ng-model="$ctrl.newUser.username" required />
+            <p class="help-inline" ng-show="formNewUser.username.$invalid">Username is requried</p>
+          </div>
+          <div class="form-group">
+            <label class="control-label">Password:</label>
+            <input type="password" class="form-control" name="password" ng-model="$ctrl.newUser.password" required />
+            <p class="help-inline" ng-show="formNewUser.password.$invalid">Password is requried</p>
+          </div>
+          <div class="form-group">
+            <label class="control-label">Confirm:</label>
+            <input type="password" class="form-control" name="repassword" ng-model="$ctrl.newUser.repassword" required />
+            <p class="help-inline" ng-show="formNewUser.repassword.$invalid">Password confirmation is required</p>
+          </div>
+        </form>
+
+        <div class="alert alert-success" role="alert" ng-show="$ctrl.step == 2">
+          Congratulations! Now you may <a href="#" ng-click="$ctrl.onLogInClick()">login here</a>!
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div ng-show="serverMessage" class="text-danger pull-left">
+          <i class="fa fa-exclamation-triangle"></i>
+          <span ng-bind="serverMessage"></span>
+        </div>
+
+        <button type="button" class="btn btn-default"
+                ng-disabled="isBusy"
+                ng-click="$ctrl.onCloseClick()">Close</button>
+        <button class="btn btn-primary"
+                ng-show="$ctrl.step == 1"
+                ng-disabled="isBusy"
+                ng-click="$ctrl.onSignupClick()">
+          <span class="fa fa-spinner fa-spin" ng-show="isBusy"></span>
+          Sign up
+        </button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
