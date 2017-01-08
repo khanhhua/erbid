@@ -1,20 +1,17 @@
 <div class="dashboard">
   <h1>DASHBOARD</h1>
 
+  <erbid-listing-modal></erbid-listing-modal>
+
   <div class="panel panel-default">
-    <div class="panel-heading">Your Bids</div>
+    <div class="panel-heading">Listings</div>
     <div class="panel-body">
       <div class="bid-list">
         <ul class="block-grid">
-          <li ng-repeat="bid in userBids">
+          <li ng-repeat="bid in listings">
             <div class="bid-list-item">
               <h3 ng-bind="bid.title"></h3>
               <p ng-bind="bid.description"></p>
-              <div class="text-center">
-                <span>Bidders:</span>
-                <span class="label label-success"
-                      ng-bind="bid.bidderCount"></span>
-              </div>
             </div>
           </li>
         </ul>

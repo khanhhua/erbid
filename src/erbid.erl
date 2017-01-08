@@ -46,7 +46,8 @@ start(_StartType, _StartArgs) ->
       {"/", cowboy_static, {priv_file, erbid, "static/index.html"}},
       {"/app", cowboy_static, {priv_file, erbid, "static/app.html"}},
       {"/assets/[...]", cowboy_static, {priv_dir, erbid, "static/assets"}},
-      {"/api/resources/:resourceName/[:id]", erbid_rest_handler, [{dbRef, DatabaseRef}]},
+      {"/api/resources/listings/[:id]", erbid_listings_resource_handler, [{dbRef, DatabaseRef}]},
+      %%{"/api/resources/:resourceName/[:id]", erbid_rest_handler, [{dbRef, DatabaseRef}]},
       {"/api/:actionName", erbid_api_handler, [{dbRef, DatabaseRef}]}
     ]}
   ]),
