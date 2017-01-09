@@ -12,7 +12,7 @@
 -import(cowboy_req, [binding/2, set_resp_body/2]).
 -import(jsx, [is_json/1, encode/1, decode/2]).
 
--record(listing, {title, description, price, deadline, image_url}).
+-record(listing, {id, title, description, price, deadline, image_url}).
 
 %% BEHAVIORS
 -export([
@@ -30,10 +30,13 @@
 %%-spec init({TransportName, ProtocolName}, Req, Options) ->
 %%  {upgrade, protocol, cowboy_rest} | {upgrade, protocol, cowboy_rest, Req, Options}.
 init({TransportName, ProtocolName}, Req, Options) ->
-  erlang:display("init/3"),
   DbRef = proplists:get_value(dbRef, Options),
+  HashidsCtx = proplists:get_value(hashidsCtx, Options),
 
-  {upgrade, protocol, cowboy_rest, Req, #{dbRef => DbRef}}.
+  State = #{dbRef => DbRef, hashidsCtx => HashidsCtx},
+  erlang:display("init/3"),
+
+  {upgrade, protocol, cowboy_rest, Req, State}.
 
 rest_init(Req, State) ->
   erlang:display("rest_init"),
@@ -95,18 +98,23 @@ create_listing(Req, State) ->
         <<"deadline">> := Deadline,
         <<"image_url">> := ImageUrl} = Data,
       {ok, DbRef} = maps:find(dbRef, State),
+      #{hashidsCtx := Ctx} = State,
+      Id = list_to_binary(hashids:encode(Ctx, round(rand:uniform() * 1000000))),
+
       Listing = #listing{
+        id=Id,
         title=Title,
         description=Description,
         price=Price,
         deadline=Deadline,
         image_url=ImageUrl
       },
-      case dets:insert(DbRef, Listing) of
-        ok ->
+      case dets:insert_new(DbRef, Listing) of
+        true ->
           Json = listing_to_map(Listing),
           Req2 = cowboy_req:set_resp_body(jsx:encode(Json), Req),
           {true, Req2, State};
+        false -> {false, Req, State};
         {error, Reason} -> {false, Req, State}
       end
   end.
@@ -115,13 +123,32 @@ query_for_listings(Req, State) ->
   {Query, _} = cowboy_req:qs_val(<<"q">>, Req),
 
   {ok, DbRef} = maps:find(dbRef, State),
-  Listings = dets:select(DbRef, [{#listing{title='_',
-                                           description='_',
-                                           price='_',
-                                           deadline='_',
-                                           image_url='_'}, [], ['$_']}]),
 
+%%  Listings = case dets(DbRef, [{#listing{
+%%                id='_',
+%%                title='_',
+%%                description='_',
+%%                price='_',
+%%                deadline='_',
+%%                image_url='_'}, [], ['$_']}
+%%            ], 10) of
+%%              '$end_of_table' -> [];
+%%              {[Listing], Continuation} -> page([Listing], Continuation)
+%%             end,
+%%  Listings = dets:foldl(fun (Listing, AccIn) -> Listing ++ AccIn end, [], DbRef),
+  Listings = dets:foldr(fun(X, L) -> [X|L] end, [], DbRef),
+  erlang:display(Listings),
   {ok, Listings}.
+
+page (Items, Continuation2) ->
+  erlang:display(Items),
+  erlang:display(Continuation2),
+  case dets:select(Continuation2) of
+    {Listing2, Continuation3} ->
+      erlang:display(Listing2),
+      page(Listing2 ++ Items, Continuation3);
+    '$end_of_table' -> Items
+  end.
 
 get_listing(Id, State) ->
   {ok, DbRef} = maps:find(dbRef, State),

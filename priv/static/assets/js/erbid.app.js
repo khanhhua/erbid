@@ -3,19 +3,34 @@
  */
 (function (erbidApp) {
 
-  function DashboardComponentCtrl($scope, $http) {
+  function DashboardComponentCtrl($scope, $http, $uibModal) {
     $scope.listings = [];
+    this.$onInit = function () {
+      refreshListings();
+    };
 
-    $http.get('/api/resources/listings').then(function (res) {
-      if (!res.data.listings) {
-        return;
-      }
+    $scope.onPostListingClick = function () {
+      var modalInstance = $uibModal.open({
+        component: 'erbidListingModal'
+      });
 
-      var listings = res.data.listings;
-      $scope.listings = listings;
-    });
+      modalInstance.result.then(function (result) {
+        refreshListings();
+      });
+    }
+
+    function refreshListings () {
+      $http.get('/api/resources/listings').then(function (res) {
+        if (!res.data.listings) {
+          return;
+        }
+
+        var listings = res.data.listings;
+        $scope.listings = listings;
+      });
+    }
   }
-  DashboardComponentCtrl.$inject = ['$scope','$http'];
+  DashboardComponentCtrl.$inject = ['$scope','$http','$uibModal'];
   erbidApp.component('erbidDashboard', {
     templateUrl: '/assets/partials/erbid-dashboard.html',
     controller: DashboardComponentCtrl
@@ -28,16 +43,22 @@
   erbidApp.component('erbidListingModal', {
     templateUrl: '/assets/partials/erbid-listing-modal.html',
     controller: function ($scope, $http) {
+      $scope.input = {};
+
       $scope.onPostClick = function () {
-        $http.post('/api/resources/listings', {
-          title:'Cat Truck',
-          description:'Lorem ipsum',
-          price: 30,
-          deadline:'2017-01-01T07:00:00Z',
-          image_url:'https://placeholdit.imgix.net/~text?txtsize=28&bg=ccc&txt=300%C3%97300&w=300&h=300'
-        }).catch(function (res) {
-          console.error(res);
-        });
+        $http.post('/api/resources/listings', $scope.input)
+          .then(function (res) {
+            if (res.data) {
+              $scope.$parent.$close('OK');
+            }
+          })
+          .catch(function (res) {
+            console.error(res);
+          });
+      };
+
+      $scope.onCloseClick = function () {
+        $scope.$parent.$close();
       };
     }
   });
@@ -64,4 +85,4 @@
 
       $urlRouterProvider.otherwise('/');
     }]);
-})(angular.module('erbid.app', ['ngResource','ngRoute','ui.router']));
+})(angular.module('erbid.app', ['ngResource','ngRoute','ui.router', 'ui.bootstrap.modal', 'ui.bootstrap.tpls']));

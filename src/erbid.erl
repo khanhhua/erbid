@@ -38,7 +38,8 @@
   {ok, pid(), State :: term()} |
   {error, Reason :: term()}).
 start(_StartType, _StartArgs) ->
-  {ok, DatabaseRef} = dets:open_file('../../../../bid.data', []),
+  DataFile = '../../../../listings.data',
+  {ok, DatabaseRef} = dets:open_file(DataFile, [{type, bag}, {keypos, 2}]),
   io:format("The data file's info: ~p~n", [dets:info(DatabaseRef)] ),
   Dispatch = cowboy_router:compile([
     %% {HostMatch, list({PathMatch, Handler, Opts})}
@@ -46,7 +47,11 @@ start(_StartType, _StartArgs) ->
       {"/", cowboy_static, {priv_file, erbid, "static/index.html"}},
       {"/app", cowboy_static, {priv_file, erbid, "static/app.html"}},
       {"/assets/[...]", cowboy_static, {priv_dir, erbid, "static/assets"}},
-      {"/api/resources/listings/[:id]", erbid_listings_resource_handler, [{dbRef, DatabaseRef}]},
+      {"/api/resources/listings/[:id]", erbid_listings_resource_handler,
+        [
+          {dbRef, DatabaseRef},
+          {hashidsCtx, hashids:new([{salt, "SALTYASSALT"}])}
+        ]},
       %%{"/api/resources/:resourceName/[:id]", erbid_rest_handler, [{dbRef, DatabaseRef}]},
       {"/api/:actionName", erbid_api_handler, [{dbRef, DatabaseRef}]}
     ]}

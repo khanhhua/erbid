@@ -14,7 +14,8 @@
     kernel,
     stdlib,
     cowboy,
-    jsx
+    jsx,
+    hashids
   ]},
   {mod, {erbid, []}},
   {env, []}
