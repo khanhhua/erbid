@@ -6,7 +6,14 @@
         <ul class="block-grid">
           <li ng-repeat="bid in listings">
             <div class="bid-list-item">
-              <h3 ng-bind="bid.title"></h3>
+              <h3 ng-bind="bid.title" class="title"></h3>
+              <div class="thumbnail">
+                <img ng-src="{{bid.image_url}}">
+              </div>
+              <dl class="dl-horizontal activity">
+                <dt>Price:</dt>
+                <dd ng-bind="bid.price"></dd>
+              </dl>
               <p ng-bind="bid.description"></p>
             </div>
           </li>
