@@ -38,9 +38,13 @@
   {ok, pid(), State :: term()} |
   {error, Reason :: term()}).
 start(_StartType, _StartArgs) ->
-  DataFile = '../../../../listings.data',
-  {ok, DatabaseRef} = dets:open_file(DataFile, [{type, bag}, {keypos, 2}]),
-  io:format("The data file's info: ~p~n", [dets:info(DatabaseRef)] ),
+  ListingsTable = '../../../../data/listings.data',
+  UsersTable    = '../../../../data/users.data',
+
+  {ok, ListingsTableRef} = dets:open_file(ListingsTable, [{type, bag}, {keypos, 2}]),
+  {ok, UsersTableRef} = dets:open_file(UsersTable, [{type, bag}, {keypos, 2}]),
+
+
   Dispatch = cowboy_router:compile([
     %% {HostMatch, list({PathMatch, Handler, Opts})}
     {'_', [
@@ -49,11 +53,14 @@ start(_StartType, _StartArgs) ->
       {"/assets/[...]", cowboy_static, {priv_dir, erbid, "static/assets"}},
       {"/api/resources/listings/[:id]", erbid_listings_resource_handler,
         [
-          {dbRef, DatabaseRef},
+          {listingsTable, ListingsTableRef},
           {hashidsCtx, hashids:new([{salt, "SALTYASSALT"}])}
         ]},
       %%{"/api/resources/:resourceName/[:id]", erbid_rest_handler, [{dbRef, DatabaseRef}]},
-      {"/api/:actionName", erbid_api_handler, [{dbRef, DatabaseRef}]}
+      {"/api/:actionName", erbid_api_handler,
+        [
+          {usersTable, UsersTableRef}
+        ]}
     ]}
   ]),
   cowboy:start_http(my_http_listener, 100, [{port, 8080}],

@@ -21,7 +21,7 @@
 -record(userRegForm, {username, password}). %% TODO Define more user registration fields
 
 init(_Type, Req, Options) ->
-  DbRef = proplists:get_value(dbRef, Options),
+  DbRef = proplists:get_value(usersTable, Options),
   {ok, Req, #{dbRef => DbRef}}.
 
 handle(Req, State) ->
@@ -82,7 +82,7 @@ register_new_user(UserRegForm, DbRef) ->
   erlang:display(UserRegForm),
 
   HashedPassword = hash(Password),
-  case dets:insert(DbRef, {user, username, Username, hashedpass, HashedPassword}) of
+  case dets:insert(DbRef, {user, Username, HashedPassword}) of
     ok -> {ok, #{username => Username}};
     {error, Reason} -> {error, Reason}
   end.
@@ -101,7 +101,7 @@ handle_login(Req, State) ->
           HashedPassword = hash(Password),
 
           {ok, DbRef} = maps:find(dbRef, State),
-          case dets:match_object(DbRef, {user, username, Username, hashedpass, HashedPassword}) of
+          case dets:match_object(DbRef, {user, Username, HashedPassword}) of
             {error, Reason} ->
               json(400, #{ok => false, reason => list_to_binary(Reason)}, Req);
             [] ->

@@ -30,7 +30,7 @@
 %%-spec init({TransportName, ProtocolName}, Req, Options) ->
 %%  {upgrade, protocol, cowboy_rest} | {upgrade, protocol, cowboy_rest, Req, Options}.
 init({TransportName, ProtocolName}, Req, Options) ->
-  DbRef = proplists:get_value(dbRef, Options),
+  DbRef = proplists:get_value(listingsTable, Options),
   HashidsCtx = proplists:get_value(hashidsCtx, Options),
 
   State = #{dbRef => DbRef, hashidsCtx => HashidsCtx},
