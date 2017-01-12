@@ -40,11 +40,14 @@
 start(_StartType, _StartArgs) ->
   ListingsTable = '../../../../data/listings.data',
   UsersTable    = '../../../../data/users.data',
+  BidsTable     = '../../../../data/bids.data',
 
   {ok, ListingsTableRef} = dets:open_file(ListingsTable, [{type, bag}, {keypos, 2}]),
   {ok, UsersTableRef} = dets:open_file(UsersTable, [{type, bag}, {keypos, 2}]),
+  {ok, BidsTableRef} = dets:open_file(BidsTable, [{type, bag}, {keypos, 2}]),
+  SessionsTable = ets:new(sessions, [set, named_table, public]),
 
-
+  HashidsCtx = hashids:new([{salt, "SALTYASSALT"}]),
   Dispatch = cowboy_router:compile([
     %% {HostMatch, list({PathMatch, Handler, Opts})}
     {'_', [
@@ -54,12 +57,17 @@ start(_StartType, _StartArgs) ->
       {"/api/resources/listings/[:id]", erbid_listings_resource_handler,
         [
           {listingsTable, ListingsTableRef},
-          {hashidsCtx, hashids:new([{salt, "SALTYASSALT"}])}
+          {hashidsCtx, HashidsCtx},
+          {sessions, SessionsTable}
         ]},
       %%{"/api/resources/:resourceName/[:id]", erbid_rest_handler, [{dbRef, DatabaseRef}]},
       {"/api/:actionName", erbid_api_handler,
         [
-          {usersTable, UsersTableRef}
+          {hashidsCtx, HashidsCtx},
+          {sessions, SessionsTable},
+          {usersTable, UsersTableRef},
+          {listingsTable, ListingsTableRef},
+          {bidsTable, BidsTableRef}
         ]}
     ]}
   ]),

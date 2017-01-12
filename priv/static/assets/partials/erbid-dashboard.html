@@ -2,19 +2,22 @@
   <div class="panel panel-default">
     <div class="panel-heading">Listings</div>
     <div class="panel-body">
-      <div class="bid-list">
+      <div class="listing-list">
         <ul class="block-grid">
-          <li ng-repeat="bid in listings">
-            <div class="bid-list-item">
-              <h3 ng-bind="bid.title" class="title"></h3>
+          <li ng-repeat="listing in listings">
+            <div class="listing-list-item">
+              <h3 ng-bind="listing.title" class="title"></h3>
               <div class="thumbnail">
-                <img ng-src="{{bid.image_url}}">
+                <img ng-src="{{listing.image_url}}">
               </div>
               <dl class="dl-horizontal activity">
                 <dt>Price:</dt>
-                <dd ng-bind="bid.price"></dd>
+                <dd ng-bind="listing.price"></dd>
+
+                <dt>Place new listing</dt>
+                <dd><button class="btn btn-small btn-success" ng-click="onPlaceBidClick(listing)">BID</button></dd>
               </dl>
-              <p ng-bind="bid.description"></p>
+              <p ng-bind="listing.description"></p>
             </div>
           </li>
         </ul>

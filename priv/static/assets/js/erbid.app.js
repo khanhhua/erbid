@@ -3,7 +3,7 @@
  */
 (function (erbidApp) {
 
-  function DashboardComponentCtrl($scope, $http, $uibModal) {
+  function DashboardComponentCtrl($scope, $http, $uibModal, erbidService) {
     $scope.listings = [];
     this.$onInit = function () {
       refreshListings();
@@ -17,7 +17,25 @@
       modalInstance.result.then(function (result) {
         refreshListings();
       });
-    }
+    };
+
+    $scope.onPlaceBidClick = function (listing) {
+      var listingId = listing.id;
+      var bidValue = listing.price + 1000;
+
+      listing.isBusy = true;
+
+      erbidService.placeBid(listingId, bidValue).then(function (result) {
+        if (result) {
+          console.info('[onPlaceBidClick] Successfully placed a bid');
+        }
+        else {
+          console.warn('[onPlaceBidClick] Could not place a bid');
+        }
+      }).finally(function () {
+        listing.isBusy = false;
+      });
+    };
 
     function refreshListings () {
       $http.get('/api/resources/listings').then(function (res) {
@@ -30,7 +48,7 @@
       });
     }
   }
-  DashboardComponentCtrl.$inject = ['$scope','$http','$uibModal'];
+  DashboardComponentCtrl.$inject = ['$scope','$http','$uibModal','erbidService'];
   erbidApp.component('erbidDashboard', {
     templateUrl: '/assets/partials/erbid-dashboard.html',
     controller: DashboardComponentCtrl
@@ -63,11 +81,55 @@
     }
   });
 
+  erbidApp.service('erbidService', ['$http', function ($http) {
+    // REPEAT MY MANTRA
+    // - All function in this service returns promises
+    // - Promises resolve
+
+    return {
+      placeBid: placeBid
+    };
+
+    /**
+     *
+     * @param listingId
+     * @param bidValue
+     * @return {Promise<boolean>}
+     */
+    function placeBid (listingId, bidValue) {
+      return $http.post('/api/placeBid', {
+        listing_id: listingId,
+        bid_value: bidValue
+      }).then(function (res) {
+        return true;
+      }).catch(function (err) {
+        console.error(err);
+
+        return false;
+      });
+    }
+  }]);
+
+  erbidApp.factory('erbid.httpInterceptor', ['$sessionStorage', function ($sessionStorage) {
+    return {
+      request: function (config) {
+        if (config.url.indexOf('/api') === 0 && $sessionStorage.authtoken) {
+          config.headers['Authorization'] = 'bearer ' + $sessionStorage.authtoken;
+        }
+
+        return config;
+      }
+    }
+  }]);
+
   erbidApp.config([
+    '$httpProvider',
     '$locationProvider',
     '$stateProvider',
     '$urlRouterProvider',
-    function ($locationProvider, $stateProvider, $urlRouterProvider) {
+    function ($httpProvider, $locationProvider, $stateProvider, $urlRouterProvider) {
+      $httpProvider.interceptors.push('erbid.httpInterceptor');
+
       $locationProvider.html5Mode(false);
 
       $stateProvider.state({
@@ -85,4 +147,4 @@
 
       $urlRouterProvider.otherwise('/');
     }]);
-})(angular.module('erbid.app', ['ngResource','ngRoute','ui.router', 'ui.bootstrap.modal', 'ui.bootstrap.tpls']));
+})(angular.module('erbid.app', ['ngStorage', 'ngResource','ngRoute','ui.router', 'ui.bootstrap.modal', 'ui.bootstrap.tpls']));

@@ -12,7 +12,7 @@
 -import(cowboy_req, [binding/2, set_resp_body/2]).
 -import(jsx, [is_json/1, encode/1, decode/2]).
 
--record(listing, {id, title, description, price, deadline, image_url}).
+-include("erbid.hrl").
 
 %% BEHAVIORS
 -export([
@@ -32,8 +32,11 @@
 init({TransportName, ProtocolName}, Req, Options) ->
   DbRef = proplists:get_value(listingsTable, Options),
   HashidsCtx = proplists:get_value(hashidsCtx, Options),
+  SessionsTable = proplists:get_value(sessions, Options),
 
-  State = #{dbRef => DbRef, hashidsCtx => HashidsCtx},
+  State = #{dbRef => DbRef,
+            hashidsCtx => HashidsCtx,
+            sessions => SessionsTable},
   erlang:display("init/3"),
 
   {upgrade, protocol, cowboy_rest, Req, State}.
@@ -88,35 +91,50 @@ create_listing(Req, State) ->
   erlang:display("create_listing"),
   {ok, Body, _} = cowboy_req:body(Req),
 
-  case jsx:is_json(Body) of
-    false -> {false, Req, State};
-    true ->
-      Data = jsx:decode(Body, [return_maps]),
-      #{<<"title">> := Title,
-        <<"description">> := Description,
-        <<"price">> := Price,
-        <<"deadline">> := Deadline,
-        <<"image_url">> := ImageUrl} = Data,
-      {ok, DbRef} = maps:find(dbRef, State),
-      #{hashidsCtx := Ctx} = State,
-      Id = list_to_binary(hashids:encode(Ctx, round(rand:uniform() * 1000000))),
-
-      Listing = #listing{
-        id=Id,
-        title=Title,
-        description=Description,
-        price=Price,
-        deadline=Deadline,
-        image_url=ImageUrl
-      },
-      case dets:insert_new(DbRef, Listing) of
-        true ->
-          Json = listing_to_map(Listing),
-          Req2 = cowboy_req:set_resp_body(jsx:encode(Json), Req),
-          {true, Req2, State};
+  try erbid_http:get_user(Req, State) of
+    {error, Reason} ->
+      {false, Req, State};
+    {error, invalid_session} ->
+      Req2 = cowboy_req:set_resp_body(<<"Invalid session">>, Req),
+      {false, Req2, State};
+    {user, Username} ->
+      erlang:display("[create_listing] User"),
+      erlang:display(Username),
+      case jsx:is_json(Body) of
         false -> {false, Req, State};
-        {error, Reason} -> {false, Req, State}
+        true ->
+          Data = jsx:decode(Body, [return_maps]),
+
+          #{<<"title">> := Title,
+            <<"description">> := Description,
+            <<"price">> := Price,
+            <<"deadline">> := Deadline,
+            <<"image_url">> := ImageUrl} = Data,
+          {ok, DbRef} = maps:find(dbRef, State),
+          #{hashidsCtx := Ctx} = State,
+          Id = list_to_binary(hashids:encode(Ctx, round(rand:uniform() * 1000000))),
+
+          {Iprice, _} = string:to_integer(binary_to_list(Price)),
+          Listing = #listing{
+            id=Id,
+            owner_name=Username,
+            title=Title,
+            description=Description,
+            price=Iprice,
+            deadline=Deadline,
+            image_url=ImageUrl
+          },
+          case dets:insert_new(DbRef, Listing) of
+            true ->
+              Json = listing_to_map(Listing),
+              Req2 = cowboy_req:set_resp_body(jsx:encode(Json), Req),
+              {true, Req2, State};
+            false -> {false, Req, State};
+            {error, Reason} -> {false, Req, State}
+          end
       end
+  catch
+    error:Reason -> {false, Req, State}
   end.
 
 query_for_listings(Req, State) ->
@@ -160,6 +178,8 @@ get_listing(Id, State) ->
 
 % TODO Add RecordType
 listing_to_map(Record) ->
+  erlang:display(Record),
+
   Fields = record_info(fields, listing),
   Size = record_info(size, listing) - 1,
   Indices = lists:seq(1, Size),

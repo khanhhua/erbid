@@ -34,19 +34,19 @@ section.row {
 /* end of .block-grid */
 
 
-/* .bid-list */
-.bid-list {
+/* .listing-list */
+.listing-list {
 
 }
 
-.bid-list .bid-list-item {
+.listing-list .listing-list-item {
   position: relative;
   padding-left: 1rem;
   padding-right: 1rem;
   padding-bottom: 2rem;
 }
 
-.bid-list .bid-list-item .title {
+.listing-list .listing-list-item .title {
   position: absolute;
   width: 100%;
   padding: 0 15px;
@@ -54,8 +54,8 @@ section.row {
   background: rgba(255, 255, 255, 0.8);
 }
 
-.bid-list .bid-list-item dl.activity {
+.listing-list .listing-list-item dl.activity {
   margin: 0;
 }
 
-/* end of .bid-list */
+/* end of .listing-list */

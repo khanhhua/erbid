@@ -9,6 +9,8 @@
 -module(erbid_api_handler).
 -author("khanhhua").
 
+-include("erbid.hrl").
+
 -import(crypto, [hash/2]).
 -import(maps, [find/2]).
 -import(cowboy_req, [reply/4, binding/2]).
@@ -18,11 +20,24 @@
 -export([init/3, handle/2, terminate/3]).
 
 -record(state, {bidders}).
--record(userRegForm, {username, password}). %% TODO Define more user registration fields
 
 init(_Type, Req, Options) ->
+  Ctx = proplists:get_value(hashidsCtx, Options),
+
   DbRef = proplists:get_value(usersTable, Options),
-  {ok, Req, #{dbRef => DbRef}}.
+  ListingsTableRef = proplists:get_value(listingsTable, Options),
+  BidsTableRef = proplists:get_value(bidsTable, Options),
+  SessionsRef = proplists:get_value(sessions, Options),
+
+  State = #{
+    hashidsCtx => Ctx,
+    sessions => SessionsRef,
+    dbRef => DbRef,
+    usersTable => DbRef,
+    listingsTable => ListingsTableRef,
+    bidsTable => BidsTableRef
+  },
+  {ok, Req, State}.
 
 handle(Req, State) ->
   {ActionName, _} = cowboy_req:binding(actionName, Req),
@@ -31,6 +46,7 @@ handle(Req, State) ->
     <<"login">> -> handle_login(Req, State);
     <<"logout">> -> handle_logout(Req, State);
     <<"signup">> -> handle_signup(Req, State);
+    <<"placeBid">> -> place_bid(Req, State);
     _ -> cowboy_req:reply(400,
             [
               {<<"content-type">>, <<"text/plain">>}
@@ -88,6 +104,7 @@ register_new_user(UserRegForm, DbRef) ->
   end.
 
 handle_login(Req, State) ->
+  erlang:display("[handle_login] Starting"),
   {ok, Data, _} = cowboy_req:body(Req),
   case jsx:is_json(Data) of
     false -> json(400, <<"Invalid JSON">>, Req);
@@ -100,16 +117,25 @@ handle_login(Req, State) ->
                      end,
           HashedPassword = hash(Password),
 
-          {ok, DbRef} = maps:find(dbRef, State),
+          #{dbRef     := DbRef,
+            sessions  := SessionsTable} = State,
           case dets:match_object(DbRef, {user, Username, HashedPassword}) of
             {error, Reason} ->
               json(400, #{ok => false, reason => list_to_binary(Reason)}, Req);
             [] ->
               json(404, #{ok => false, reason => <<"Not found">>}, Req);
             [User] ->
-              Authtoken = base64:encode(hash(Username)),
-              json(200, #{ok => true, authtoken => Authtoken, username => Username}, Req)
-          end;
+              Authtoken = base64:encode(encrypt(Username)),
+              erlang:display("[handle_login] Token " ++ binary_to_list(Authtoken)),
+              case ets:insert(SessionsTable, {Authtoken, Username}) of
+                true ->
+                  erlang:display("[handle_login] SessionsTable updated"),
+                  json(200, #{ok => true, authtoken => Authtoken, username => Username}, Req)
+                ;
+                false -> json(400, #{ok => false}, Req)
+              end
+          end
+        ;
         _ ->
           json(400, <<"Missing username in payload">>, Req)
       end
@@ -123,6 +149,36 @@ handle_logout(Req, State) ->
     <<"logout() OK">>,
     Req).
 
+place_bid(Req, State) ->
+  %% TODO Upgrade database to Mnesia
+  #{usersTable := UsersTableRef,
+    listingsTable := ListingsTableRef,
+    bidsTable := BidsTableRef} = State,
+
+  {user, Username} = erbid_http:get_user(Req, State),
+
+  {ok, Data, _} = cowboy_req:body(Req),
+  %% TODO Is JSON?
+
+  #{<<"listing_id">> := ListingId,
+    <<"bid_value">>  := BidValue} = jsx:decode(Data, [return_maps]),
+
+  {A, B, C} = now(),
+  #{hashidsCtx := Ctx} = State,
+  Id = list_to_binary(hashids:encode(Ctx, A * B * C)),
+
+  CreatedAt = timestamp(),
+  Bid = #bid{id = Id,
+             listing_id = ListingId,
+             bidder_name = Username,
+             bid_value = BidValue,
+             created_at = CreatedAt},
+  case dets:insert_new(BidsTableRef, Bid) of
+    true -> json(200, <<"ok">>, Req)
+    ;
+    false -> json(400, <<"error">>, Req)
+  end.
+
 json(Status, Body, Req) ->
   cowboy_req:reply(Status,
     [
@@ -133,3 +189,18 @@ json(Status, Body, Req) ->
 
 hash(Username) ->
   crypto:hash(md5, Username).
+
+encrypt(Username) when is_binary(Username) ->
+%%  {ok, PkeyBin} = file:read_file('priv/erbid_privkey'),
+%%  [PrivateKey] = public_key:pem_decode(PkeyBin),
+%%  Token = crypto:private_encrypt(rsa, Username, PrivateKey, rsa_no_padding),
+  Token = Username,
+  Token.
+
+decrypt(Token) ->
+  Username = Token,
+  Username.
+
+timestamp() ->
+  {{Year, Month, Day}, {Hour, Minute, Second}} = calendar:now_to_datetime(erlang:now()),
+  lists:flatten(io_lib:format("~4..0w-~2..0w-~2..0wT~2..0w:~2..0w:~2..0w",[Year,Month,Day,Hour,Minute,Second])).
