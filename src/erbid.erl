@@ -42,7 +42,7 @@ start(_StartType, _StartArgs) ->
   UsersTable    = '../../../../data/users.data',
   BidsTable     = '../../../../data/bids.data',
 
-  {ok, ListingsTableRef} = dets:open_file(ListingsTable, [{type, bag}, {keypos, 2}]),
+  {ok, ListingsTableRef} = dets:open_file(ListingsTable, [{type, set}, {keypos, 2}]),
   {ok, UsersTableRef} = dets:open_file(UsersTable, [{type, bag}, {keypos, 2}]),
   {ok, BidsTableRef} = dets:open_file(BidsTable, [{type, bag}, {keypos, 2}]),
   SessionsTable = ets:new(sessions, [set, named_table, public]),

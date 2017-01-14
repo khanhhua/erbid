@@ -12,8 +12,6 @@
 -import(cowboy_req, [binding/2, set_resp_body/2]).
 -import(jsx, [is_json/1, encode/1, decode/2]).
 
--include("erbid.hrl").
-
 %% BEHAVIORS
 -export([
   init/3,
@@ -26,6 +24,8 @@
 
 %% HANDLERS
 -export([to_html/2, to_json/2, create_listing/2]).
+
+-include("erbid.hrl").
 
 %%-spec init({TransportName, ProtocolName}, Req, Options) ->
 %%  {upgrade, protocol, cowboy_rest} | {upgrade, protocol, cowboy_rest, Req, Options}.
@@ -175,20 +175,3 @@ get_listing(Id, State) ->
     [Listing] -> Listing;
     [] -> {error, notfound}
   end.
-
-% TODO Add RecordType
-listing_to_map(Record) ->
-  erlang:display(Record),
-
-  Fields = record_info(fields, listing),
-  Size = record_info(size, listing) - 1,
-  Indices = lists:seq(1, Size),
-
-  Map2 = lists:foldl(
-  fun (Index, Map) ->
-  Key = lists:nth(Index, Fields),
-  Value = element(Index + 1, Record),
-  maps:put(Key, Value, Map)
-  end, #{}, Indices),
-
-  Map2.

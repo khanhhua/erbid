@@ -9,8 +9,6 @@
 -module(erbid_api_handler).
 -author("khanhhua").
 
--include("erbid.hrl").
-
 -import(crypto, [hash/2]).
 -import(maps, [find/2]).
 -import(cowboy_req, [reply/4, binding/2]).
@@ -19,6 +17,8 @@
 %% Cowboy behavior
 -export([init/3, handle/2, terminate/3]).
 
+
+-include("erbid.hrl").
 -record(state, {bidders}).
 
 init(_Type, Req, Options) ->
@@ -163,20 +163,34 @@ place_bid(Req, State) ->
   #{<<"listing_id">> := ListingId,
     <<"bid_value">>  := BidValue} = jsx:decode(Data, [return_maps]),
 
-  {A, B, C} = now(),
-  #{hashidsCtx := Ctx} = State,
-  Id = list_to_binary(hashids:encode(Ctx, A * B * C)),
-
-  CreatedAt = timestamp(),
-  Bid = #bid{id = Id,
-             listing_id = ListingId,
-             bidder_name = Username,
-             bid_value = BidValue,
-             created_at = CreatedAt},
-  case dets:insert_new(BidsTableRef, Bid) of
-    true -> json(200, <<"ok">>, Req)
+  case dets:lookup(ListingsTableRef, ListingId) of
+    {error, Reason} -> json(400, list_to_binary(Reason), Req)
     ;
-    false -> json(400, <<"error">>, Req)
+    [] -> json(400, <<"Listing not found">>, Req)
+    ;
+    [Listing] ->
+      {A, B, C} = now(),
+      #{hashidsCtx := Ctx} = State,
+      Id = list_to_binary(hashids:encode(Ctx, A * B * C)),
+
+      CreatedAt = timestamp(),
+      BidValue2 = erbid_http:parse_float(BidValue),
+      Bid = #bid{id = Id,
+        listing_id = ListingId,
+        bidder_name = Username,
+        bid_value = BidValue2,
+        created_at = CreatedAt},
+      case dets:insert_new(BidsTableRef, Bid) of
+        true ->
+          UpdatedListing = Listing#listing{price = BidValue},
+          case dets:insert(ListingsTableRef, UpdatedListing) of
+            ok -> json(200, <<"ok">>, Req)
+            ;
+            _Error -> json(400, <<"Could not update listing">>, Req)
+          end
+        ;
+        false -> json(400, <<"error">>, Req)
+      end
   end.
 
 json(Status, Body, Req) ->

@@ -10,7 +10,7 @@
 -author("khanhhua").
 
 %% API
--export([get_user/2]).
+-export([get_user/2, parse_int/1, parse_float/1]).
 
 get_user(Req, State) ->
   %% TODO Refactor to middleware
@@ -27,3 +27,26 @@ get_user(Req, State) ->
       {user, Username}
   end.
 
+parse_int(Input) when is_binary(Input) ->
+  try string:to_integer(binary_to_list(Input)) of
+    {Integer, _} -> Integer
+  catch
+    _:_ -> 0
+  end;
+parse_int(Input) ->
+  0.
+
+parse_float(Input) when is_binary(Input) ->
+  Bin = binary_to_list(Input),
+  try string:to_float(Bin) of
+    {error, no_float} -> case string:to_integer(Bin) of
+                           {error, no_integer} -> 0;
+                           {Out, _} -> Out
+                         end
+    ;
+    {Out, _} -> Out
+  catch
+    _:_ -> 0
+  end;
+parse_float(Input) ->
+  0.
