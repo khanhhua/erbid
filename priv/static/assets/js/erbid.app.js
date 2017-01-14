@@ -20,20 +20,15 @@
     };
 
     $scope.onPlaceBidClick = function (listing) {
-      var listingId = listing.id;
-      var bidValue = listing.price + 1000;
-
-      listing.isBusy = true;
-
-      erbidService.placeBid(listingId, bidValue).then(function (result) {
-        if (result) {
-          console.info('[onPlaceBidClick] Successfully placed a bid');
+      var modalInstance = $uibModal.open({
+        component: 'erbidBiddingModal',
+        resolve: {
+          listing: listing
         }
-        else {
-          console.warn('[onPlaceBidClick] Could not place a bid');
-        }
-      }).finally(function () {
-        listing.isBusy = false;
+      });
+
+      modalInstance.result.then(function (result) {
+        refreshListings();
       });
     };
 
@@ -77,6 +72,44 @@
 
       $scope.onCloseClick = function () {
         $scope.$parent.$close();
+      };
+    }
+  });
+
+  erbidApp.component('erbidBiddingModal', {
+    bindings: {
+      resolve: '<',
+      close: '&',
+      dismiss: '&'
+    },
+    templateUrl: '/assets/partials/erbid-bidding-modal.html',
+    controller: function ($scope, $http, erbidService) {
+      $ctrl = this;
+      $ctrl.$onInit = function () {
+        $scope.listing = $ctrl.resolve.listing;
+      }
+      $scope.isBusy = false;
+
+      $scope.onBidClick = function () {
+        var listingId = $scope.listing.id;
+        var bidValue = $scope.listing.price + 100;
+
+        $scope.isBusy = true;
+
+        erbidService.placeBid(listingId, bidValue).then(function (result) {
+          if (result) {
+            console.info('[onPlaceBidClick] Successfully placed a bid');
+          }
+          else {
+            console.warn('[onPlaceBidClick] Could not place a bid');
+          }
+        }).finally(function () {
+          $scope.isBusy = false;
+        });
+      };
+
+      $scope.onCloseClick = function () {
+        $ctrl.close();
       };
     }
   });

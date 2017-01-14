@@ -1,13 +1,16 @@
-<div class="bid-list">
+<div class="listing-list ">
   <ul class="block-grid">
     <li ng-repeat="bid in bids">
-      <div class="bid-list-item">
-        <h3 ng-bind="bid.title"></h3>
-        <p ng-bind="bid.description"></p>
-        <div class="text-center">
-          <span>Bidders:</span>
-          <span class="label label-success"
-                ng-bind="bid.bidderCount"></span>
+      <div class="listing-list-item" style="background-image: url({{bid.image_url}})">
+        <h3 ng-bind="bid.title" class="title"></h3>
+
+        <div class="content">
+          <p ng-bind="bid.description" class="description"></p>
+          <div class="text-center">
+            <span>Bidders:</span>
+            <span class="label label-success"
+                  ng-bind="bid.bidderCount"></span>
+          </div>
         </div>
       </div>
     </li>

@@ -1,0 +1,31 @@
+<div class="modal-header">
+  <h3 class="modal-title" id="modal-title">
+    <span ng-bind="listing.title"></span>
+    <span class="pull-right text-muted" ng-bind="listing.deadline"></span>
+  </h3>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="form">
+    <div class="row">
+      <div class="col-sm-12 col-md-6">
+        <div class="thumbnail">
+          <img ng-src="{{listing.image_url}}" title="{{listing.title}}">
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-6">
+        <p ng-bind="listing.description"></p>
+        <dl class="dl-horizontal">
+          <dt>Price</dt>
+          <dd ng-bind="listing.price"></dd>
+        </dl>
+        <div class="form-group">
+          <button class="btn btn-primary btn-lg btn-block"
+                  ng-click="onBidClick()">Bid</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-warning" type="button" ng-click="onCloseClick()">Close</button>
+</div>

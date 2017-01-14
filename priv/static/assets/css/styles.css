@@ -41,17 +41,41 @@ section.row {
 
 .listing-list .listing-list-item {
   position: relative;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  padding-bottom: 2rem;
+  /*padding-left: 1rem;*/
+  /*padding-right: 1rem;*/
+  /*padding-bottom: 2rem;*/
+
+  background-size: cover;
+  background-clip: content-box;
+}
+
+.listing-list .listing-list-item:after {
+  content: "";
+  display: block;
+  width: 100%;
+  padding-bottom: 100%;
 }
 
 .listing-list .listing-list-item .title {
   position: absolute;
   width: 100%;
-  padding: 0 15px;
+  padding: 0.5rem 1rem;
   left: 0;
   background: rgba(255, 255, 255, 0.8);
+}
+
+.listing-list .listing-list-item .content {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+
+  padding: 1rem 1rem 2rem 1rem;
+
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.listing-list .listing-list-item .description {
+
 }
 
 .listing-list .listing-list-item dl.activity {
