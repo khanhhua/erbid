@@ -11,6 +11,7 @@
 
 -import(cowboy_req, [binding/2, set_resp_body/2]).
 -import(jsx, [is_json/1, encode/1, decode/2]).
+-import(erbid_auction_fsm, [start/1, stop/1]).
 
 %% BEHAVIORS
 -export([
@@ -127,6 +128,9 @@ create_listing(Req, State) ->
           case dets:insert_new(DbRef, Listing) of
             true ->
               Json = listing_to_map(Listing),
+              %% Release the Kraken
+              AuctionPid = erbid_auction_fsm:start(Listing),
+              io:format("A new auction is running as ~p~n", [AuctionPid]),
               Req2 = cowboy_req:set_resp_body(jsx:encode(Json), Req),
               {true, Req2, State};
             false -> {false, Req, State};
