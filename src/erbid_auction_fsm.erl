@@ -82,8 +82,12 @@ pristine(timeout, State) ->
   #{listing := Listing} = State,
   Deadline = Listing#listing.deadline,
 
-  case calendar:time_difference(Deadline, calendar:universal_time()) of
-    {0, {0, 0, Difference}} when Difference > 5 -> {next_state, pristine, State, 5000}
+%% Cap between the two Bounds
+  TimeoutLower = 5,
+  TimeoutUpper = 3600,
+  case calendar:time_difference(calendar:universal_time(), Deadline) of
+    {0, {0, 0, Difference}} when Difference > 5 ->
+      {next_state, pristine, State, max(TimeoutLower, min(Difference, TimeoutUpper))}
     ;
     {Difference, {_, _, _}} when Difference < 0 -> {next_state, closed, State, 5000}
     ;
