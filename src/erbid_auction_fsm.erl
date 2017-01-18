@@ -17,6 +17,7 @@
 %% States
 -export([pristine/2, bidding/2, sold/2, closed/2, finalized/2]).
 
+
 -include("erbid.hrl").
 %% State data structure: A map
 %% - listing => Listing
@@ -31,8 +32,7 @@ start(Listing) ->
   [Y,M,D,Hh,Mm,Ss] = lists:map(fun (X) -> element(1, string:to_integer(X)) end, string:tokens(Deadline, "-T:Z")),
   Listing2 = Listing#listing{deadline = {{Y,M,D},{Hh,Mm,Ss}}},
 
-  {ok, Pid} = gen_fsm:start(?MODULE, Listing2, []),
-  Pid.
+  gen_fsm:start(?MODULE, Listing2, []).
 
 %% -spec bid(Pid, Username, BidValue) -> ok | {error, Reason}
 bid(Pid, Username, BidValue) ->
@@ -57,7 +57,29 @@ init(Listing) ->
     bids => [],
     winner => {undefined, undefined}
   },
-  {ok, pristine, State, 60000}.
+
+  Deadline = Listing#listing.deadline,
+
+  TimeoutLower = 5,
+  TimeoutUpper = 3600,
+  case calendar:time_difference(calendar:universal_time(), Deadline) of
+    {Difference, _} when Difference < 0 ->
+      io:format("Auction has already reached deadline~n"),
+      {stop, normal}
+    ;
+    {0, {Hh, Mm, Ss}} when Hh =:= 0, Mm =:= 0, Ss < 5 ->
+      io:format("Auction transitioning: pristine -> closed in 5s ms~n"),
+      {ok, closed, State, Ss * 1000}
+    ;
+    {0, {Hh, Mm, Ss}} ->
+      Timeout = 1000 * max(TimeoutLower, min(Hh * 3600 + Mm * 60 + Ss, TimeoutUpper)),
+      io:format("Auction transitioning: pristine -> closed in ~wms~n", [Timeout]),
+      {ok, pristine, State, 60000}
+    ;
+    _ ->
+      io:format("Auction: checking in 60s~n"),
+      {ok, pristine, State, 60000}
+  end.
 
 
 %%% StateName function
@@ -85,13 +107,25 @@ pristine(timeout, State) ->
 %% Cap between the two Bounds
   TimeoutLower = 5,
   TimeoutUpper = 3600,
+
   case calendar:time_difference(calendar:universal_time(), Deadline) of
-    {0, {0, 0, Difference}} when Difference > 5 ->
-      {next_state, pristine, State, max(TimeoutLower, min(Difference, TimeoutUpper))}
+    {Difference, _} when Difference < 0 ->
+      io:format("Auction has already reached deadline~n"),
+      {next_state, closed, State}
     ;
-    {Difference, {_, _, _}} when Difference < 0 -> {next_state, closed, State, 5000}
+    {0, {Hh, Mm, Ss}} when Hh =:= 0, Mm =:= 0, Ss < 5 ->
+      Timeout = 1000 * Ss,
+      io:format("Auction transitioning: pristine -> closed in ~ws~n", [Timeout]),
+      {next_state, closed, State, Timeout}
     ;
-    _ -> {next_state, closed, State, 5000}
+    {0, {Hh, Mm, Ss}} ->
+      Timeout = 1000 * max(TimeoutLower, min(Hh * 3600 + Mm * 60 + Ss, TimeoutUpper)),
+      io:format("Auction transitioning: pristine -> closed in ~wms~n", [Timeout]),
+      {next_state, pristine, State, Timeout}
+    ;
+    _ ->
+      io:format("Auction: checking in 60s~n"),
+      {next_state, pristine, State, 60000}
   end.
 
 %%%-------------
