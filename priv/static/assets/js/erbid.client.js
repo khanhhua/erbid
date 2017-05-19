@@ -1,13 +1,20 @@
 import PlaceBidModal from './clients/place-bid-modal.jsx';
 import reactDOM from 'react-dom';
 
+import { connect } from 'react-redux';
+import { createStore, bindActionCreators, applyMiddleware, compose } from 'redux';
+import { Provider } from 'react-redux';
+import thunk from 'redux-thunk';
+
+import * as actions from './clients/actions';
+
 const erbid = {
   // init,
   scan,
   apiKey: undefined
 };
 
-const state = {
+let state = {
   productListings:[]
 };
 
@@ -21,24 +28,33 @@ function init(apiKey) {
     throw new Error('API key missing');
   }
 
-  console.info('[init] Initializing')
+  console.info('[init] Initializing...');
   erbid.apiKey = apiKey;
 
   window.addEventListener('load', function () {
-    scan();
-    validate();
+    let listings = scan();
 
-    if (typeof(erbidCallback) === 'function') {
-      erbidCallback();
-    }
+    const pids = listings.map(item => item.pid);
+    validate(state);
 
-    const erbidNodes = document.querySelectorAll('[erbid]');
-    Array.prototype.forEach.call(erbidNodes, node => {
-      const button = node.querySelector('[erbid-button-bid]');
-      if (!button) {
-        return;
+    getListings(pids).then(function(listings) {
+      if (typeof(erbidCallback) === 'function') {
+        erbidCallback();
       }
-      button.addEventListener('click', showPlaceBidModal);
+
+      console.info('[init]', listings);
+      state.productListings = listings;
+
+      const erbidNodes = document.querySelectorAll('[erbid]');
+      Array.prototype.forEach.call(erbidNodes, node => {
+        const button = node.querySelector('[erbid-button-bid]');
+        if (!button) {
+          return;
+        }
+        button.addEventListener('click', (e) => showPlaceBidModal('w1kv'));
+      });
+
+      console.info('[init] Complete');
     });
   });
 }
@@ -47,15 +63,59 @@ function scan() {
   const productListings = extractProductListing(document.querySelectorAll('[erbid]'));
 
   console.info('[scan] Product listings:', productListings);
-  state.productListings = productListings;
+
+  return productListings;
+}
+
+function getListings(pids) {
+  return fetch('/api/resources/listings/').then(res => res.json()).then(data => {
+    return data.listings;
+  });
 }
 
 function validate() {
 }
 
-function showPlaceBidModal () {
+function showPlaceBidModal (productId) {
   const node = document.body.appendChild(document.createElement('div'));
-  reactDOM.render(<PlaceBidModal />, node);
+
+  const localState = {
+    listing: state.productListings.find(item => item.id === productId)
+  };
+
+  if (!localState.listing) {
+    console.warn('Page contains no valid listings');
+    return;
+  }
+
+  let store = compose(applyMiddleware(thunk))(createStore)(
+    (state=localState, action) => {
+      switch (action.type) {
+        case 'place-bid': return state;
+      }
+
+      return state;
+    }
+  );
+
+  const ConnectedPlaceBidModal = connect(
+    function mapStateToProps (state) {
+      const {listing} = state;
+
+      return {
+        listing
+      };
+    },
+    function mapDispatchToProps (dispatch, ownProps) {
+      return {
+        actions: bindActionCreators(actions, dispatch)
+      };
+    }
+  )(PlaceBidModal);
+
+  const app = (<Provider store={store}><ConnectedPlaceBidModal /></Provider>);
+
+  reactDOM.render(app, node);
 }
 
 //============================================================
