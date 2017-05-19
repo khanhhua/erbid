@@ -54,6 +54,7 @@ start(_StartType, _StartArgs) ->
       {"/", cowboy_static, {priv_file, erbid, "static/index.html"}},
       {"/app", cowboy_static, {priv_file, erbid, "static/app.html"}},
       {"/assets/[...]", cowboy_static, {priv_dir, erbid, "static/assets"}},
+      {"/demo/[...]", cowboy_static, {priv_dir, erbid, "static/demo"}},
       {"/api/resources/listings/[:id]", erbid_listings_resource_handler,
         [
           {listingsTable, ListingsTableRef},

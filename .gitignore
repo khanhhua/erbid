@@ -13,3 +13,5 @@ rel/example_project
 *.dump
 _build
 *.data
+
+node_modules
