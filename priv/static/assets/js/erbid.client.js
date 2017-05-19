@@ -80,7 +80,8 @@ function showPlaceBidModal (productId) {
   const node = document.body.appendChild(document.createElement('div'));
 
   const localState = {
-    listing: state.productListings.find(item => item.id === productId)
+    listing: state.productListings.find(item => item.id === productId),
+    modal: { visible: true }
   };
 
   if (!localState.listing) {
@@ -91,7 +92,7 @@ function showPlaceBidModal (productId) {
   let store = compose(applyMiddleware(thunk))(createStore)(
     (state=localState, action) => {
       switch (action.type) {
-        case 'place-bid': return state;
+        case 'place-bid':
         case 'update-listing':
           const {listing} = action.payload;
           if (listing.id !== state.listing.id) {
@@ -99,6 +100,13 @@ function showPlaceBidModal (productId) {
           }
 
           return {listing};
+        case 'close-modal':
+          return Object.assign(
+            {},
+            state,
+            {
+              modal: { visible: false }
+            });
       }
 
       return state;
@@ -122,9 +130,17 @@ function showPlaceBidModal (productId) {
     }
   )(PlaceBidModal);
 
-  const app = (<Provider store={store}><ConnectedPlaceBidModal /></Provider>);
+  const app = (<Provider store={store}>
+    <ConnectedPlaceBidModal />
+  </Provider>);
 
   reactDOM.render(app, node);
+  store.subscribe((e) => {
+    const {modal: {visible}} = store.getState();
+    if (!visible) {
+      node.remove();
+    }
+  })
 }
 
 //============================================================

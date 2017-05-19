@@ -18,3 +18,7 @@ export const placeBid = (productId, bidValue) => (dispatch, getState) => {
     });
   }, 5000);
 };
+
+export const closeModal = () => ({
+  type: 'close-modal'
+});

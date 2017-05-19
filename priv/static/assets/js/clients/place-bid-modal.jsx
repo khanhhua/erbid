@@ -1,6 +1,6 @@
 export default class PlaceBidModal extends React.Component {
   render() {
-    const {placeBid} = this.props.actions;
+    const {placeBid, closeModal} = this.props.actions;
     const {listing} = this.props;
 
     return (
@@ -8,7 +8,10 @@ export default class PlaceBidModal extends React.Component {
         <div className="modal-dialog" role="document">
           <div className="modal-content">
             <div className="modal-header">
-              <button type="button" className="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <button type="button" className="close" aria-label="Close"
+                      onClick={closeModal}>
+                <span aria-hidden="true">&times;</span>
+              </button>
               <h4 className="modal-title">Place a Bid</h4>
             </div>
             <div className="modal-body">
@@ -63,7 +66,10 @@ export default class PlaceBidModal extends React.Component {
               </div>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+              <button type="button" className="btn btn-default"
+                      onClick={closeModal}>
+                Close
+              </button>
             </div>
           </div>
         </div>
