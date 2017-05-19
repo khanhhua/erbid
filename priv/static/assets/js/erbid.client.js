@@ -92,11 +92,20 @@ function showPlaceBidModal (productId) {
     (state=localState, action) => {
       switch (action.type) {
         case 'place-bid': return state;
+        case 'update-listing':
+          const {listing} = action.payload;
+          if (listing.id !== state.listing.id) {
+            return state;
+          }
+
+          return {listing};
       }
 
       return state;
     }
   );
+
+  erbid.__dispatch = store.dispatch;
 
   const ConnectedPlaceBidModal = connect(
     function mapStateToProps (state) {
