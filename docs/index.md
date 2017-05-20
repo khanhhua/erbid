@@ -3,11 +3,11 @@ ERBid - Realtime Bidding System
 
 ## Table of Content
 
-- [Problem Statement](#user-content-problem-statement)
-- [Use Cases](#user-content-use-cases)
-- [Deployment](#user-content-deployment)
-- [Integration](#user-content-integration)
-- [Administrative Portal](/administrative-portal)
+- [Problem Statement](#problem-statement)
+- [Use Cases](#use-cases)
+- [Deployment](#deployment)
+- [Integration](#integration)
+- [Administrative Portal](administrative-portal)
 
 ## Problem Statement
 
