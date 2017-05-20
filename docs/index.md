@@ -22,3 +22,24 @@ However, you do not want to lose control over the look'n'feel of your storefront
 customers to another domain.
 
 ## Use Cases
+
+### User Registration
+
+Standard flow of user registration
+OAuth2 linking is a must-have
+
+### User Login
+
+Standard login flow
+
+### Post new Product Listing
+
+Authenticated user must provide required product details (image URL, product title, description, base price, deadline...) before he can make his product available on the auction platform.
+
+### In Page Auction: Display Auction in Realtime
+
+Using an auction listing id, authorized user can associate a fragment of a webpage to the corresponding auction. The public can see auctioning progress, winning bid and participants in realtime.
+
+### In Page Auction: Place new bid
+
+An authenticated web user can participate in any auction by placing a bid.
