@@ -121,7 +121,7 @@ function showPlaceBidModal (productId) {
             return state;
           }
 
-          return {listing};
+          return Object.assign({}, state, {listing});
         case 'close-modal':
           return Object.assign(
             {},
@@ -172,6 +172,17 @@ function subscribeToErbidServer() {
     const {productListings, elementMapping} = state;
 
     state.productListings = randomize(state.productListings);
+
+    if (erbid.__dispatch) {
+      state.productListings.forEach(listing => {
+        erbid.__dispatch({
+          type: 'update-listing',
+          payload: {
+            listing
+          }
+        })
+      });
+    }
     state.productListings.forEach(listing => {
       const latestBid = elementMapping[listing.id];
       latestBid.innerText = '$' + listing.price;
