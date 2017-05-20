@@ -15,7 +15,8 @@ const erbid = {
 };
 
 let state = {
-  productListings:[]
+  productListings:[],
+  elementMapping: {} // Maps of listing IDs to Latest Bid Output Elements
 };
 
 window.erbid = window.erbid || erbid;
@@ -32,9 +33,10 @@ function init(apiKey) {
   erbid.apiKey = apiKey;
 
   window.addEventListener('load', function () {
-    let listings = scan();
+    // Extract erbid specific elements
+    let erbidElements = scan();
 
-    const pids = listings.map(item => item.pid);
+    const pids = erbidElements.map(item => item.pid);
     validate(state);
 
     getListings(pids).then(function(listings) {
@@ -45,15 +47,18 @@ function init(apiKey) {
       console.info('[init]', listings);
       state.productListings = listings;
 
-      const erbidNodes = document.querySelectorAll('[erbid]');
-      Array.prototype.forEach.call(erbidNodes, node => {
-        const button = node.querySelector('[erbid-button-bid]');
-        if (!button) {
+      listings.forEach(listing => {
+        console.info('[init] Processing UI elements for %s', listing.id);
+        const erbidElement = erbidElements.find(item => item.pid === listing.id);
+
+        if (!erbidElement) {
           return;
         }
-        button.addEventListener('click', (e) => showPlaceBidModal('w1kv'));
+
+        wireListingToElement(listing, erbidElement);
       });
 
+      subscribeToErbidServer();
       console.info('[init] Complete');
     });
   });
@@ -72,6 +77,23 @@ function getListings(pids) {
     return data.listings;
   });
 }
+
+function wireListingToElement(listing, element) {
+  const button = element.elementButtonBid;
+  const latestBid = element.elementLatestBid;
+
+  if (button) {
+    console.info('[wireListingToElement] Wiring bid button (pid: %s) to event handler', listing.id);
+    button.addEventListener('click', (e) => showPlaceBidModal(listing.id));
+  }
+
+  if (latestBid) {
+    console.info('[wireListingToElement] Channeling latest bid (pid: %s) to output element', listing.id);
+
+    state.elementMapping[listing.id] = latestBid;
+  }
+}
+
 
 function validate() {
 }
@@ -143,6 +165,38 @@ function showPlaceBidModal (productId) {
   })
 }
 
+function subscribeToErbidServer() {
+  // Faker
+  const handler = setInterval((function generate () {
+    console.info('[subscribeToErbidServer] Generating...');
+    const {productListings, elementMapping} = state;
+
+    state.productListings = randomize(state.productListings);
+    state.productListings.forEach(listing => {
+      const latestBid = elementMapping[listing.id];
+      latestBid.innerText = '$' + listing.price;
+    });
+
+    return generate;
+  })(),  5000);
+
+  return {
+    unsubscribe () {
+      clearInterval(handler);
+    }
+  };
+
+  function randomize (productListings) {
+    const updatedListings = productListings.map(listing => Object.assign({}, listing));
+
+    updatedListings.forEach(listing => {
+      listing.price += Math.floor(Math.random() * 20)
+    });
+
+    return updatedListings;
+  }
+}
+
 //============================================================
 // PRIVATE SECTION
 //============================================================
@@ -156,7 +210,9 @@ function extractProductListing(nodeList) {
 
   function extract(node) {
     return {
-      pid: node.getAttribute('erbid-product-id')
+      pid: node.getAttribute('erbid-product-id'),
+      elementLatestBid: node.querySelector('[erbid-product-latest-bid]'),
+      elementButtonBid: node.querySelector('[erbid-button-bid]')
     };
   }
 }
